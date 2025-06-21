@@ -1,6 +1,6 @@
 # NASA_Near_Earth_Object_vs
 #NASA Near-Earth Object (NEO) Tracking &amp; Insights using Public API
-The key take away from the project/n
+The key take away from the project\n
 ●	API Integration and JSON Parsing/n
 ●	 Data Transformation 
 ●	Relational Database (SQL) Table Creation and Insertion
