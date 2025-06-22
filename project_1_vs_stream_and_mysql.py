@@ -358,6 +358,8 @@ if conn: # Proceed only if the database connection is successful
         st.session_state.selected_orbiting_bodies = []
     if 'selected_query_title' not in st.session_state:
         st.session_state.selected_query_title = list(QUERIES.keys())[0]
+    if 'selected_sidebar_option' not in st.session_state:
+        st.session_state.selected_sidebar_option = "Filter Criteria"
 
     # --- Helper Function: Build Dynamic WHERE Clause ---
     # This function is the core of dynamic filtering. It intelligently constructs
@@ -575,18 +577,72 @@ if conn: # Proceed only if the database connection is successful
             st.metric(label="Unique Asteroids Found", value=f"{count_result:,}")
             st.info("This count reflects the number of unique asteroids that satisfy ALL currently applied filters. It updates automatically as you change filters.")
 
-            #Filter use
-            if st.button("View Matching Asteroids in Detail"):
-                st.session_state.selected_sidebar_optiion = "Queries"
-                st.session_state.selected_query_title =  "0. All Filtered Asteroid Details"  
-                st.rerun()
-
         except mysql.connector.Error as e:
             st.error(f"Error retrieving filter summary: {e}")
             st.info("Please ensure your database is running and contains data compatible with the filters. Some filter combinations might not apply to this summary count (e.g., if a filter requires a table not present in the generic count query).")
         except Exception as e:
             st.error(f"An unexpected error occurred during filter summary: {e}")
+        st.markdown("---")
 
+            # --- Display Filtered Asteroid Details Table Here ---
+        st.subheader("Matching Asteroid Details")
+        base_details_query = QUERIES["0. All Filtered Asteroid Details"].strip()
+        dynamic_where_clause_for_details = build_dynamic_where_clause_from_session_state(base_details_query)
+
+        final_details_query = base_details_query
+
+        if dynamic_where_clause_for_details:
+            upper_base_query = base_details_query.upper()
+            
+            keywords_for_splitting = ['GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT']
+            
+            insertion_point = len(base_details_query)
+
+            for keyword in keywords_for_splitting:
+                idx = upper_base_query.find(keyword)
+                if idx != -1 and (idx == 0 or not upper_base_query[idx-1].isalpha()):
+                    insertion_point = min(insertion_point, idx)
+
+            part_before_keywords = base_details_query[:insertion_point].strip()
+            part_after_keywords = base_details_query[insertion_point:].strip()
+
+            has_existing_where = "WHERE" in part_before_keywords.upper()
+
+            if has_existing_where:
+                existing_where_pos = part_before_keywords.upper().find("WHERE")
+                existing_conditions_part = part_before_keywords[existing_where_pos + len("WHERE"):].strip()
+                
+                dynamic_conditions_formatted = dynamic_where_clause_for_details[len("WHERE "):].strip()
+
+                if existing_conditions_part:
+                    final_details_query = f"{part_before_keywords[:existing_where_pos + len('WHERE')]} {existing_conditions_part}\n  AND {dynamic_conditions_formatted}"
+                else:
+                    final_details_query = f"{part_before_keywords[:existing_where_pos + len('WHERE')]} {dynamic_conditions_formatted}"
+                
+                if part_after_keywords:
+                    final_details_query += f"\n{part_after_keywords}"
+            else:
+                final_details_query = f"{part_before_keywords}\n{dynamic_where_clause_for_details}"
+                if part_after_keywords:
+                    final_details_query += f"\n{part_after_keywords}"
+        
+        st.write("Generated SQL Query for Details Table:") # Indicate which query this is
+        st.code(final_details_query, language="sql") 
+
+        try:
+            df_details = pd.read_sql_query(final_details_query, conn)
+            
+            st.info(f"Details table loaded. Shape: {df_details.shape}") # Debugging
+            
+            if not df_details.empty:
+                st.dataframe(df_details, use_container_width=True)
+            else:
+                st.info("No detailed asteroid data found for the current filter criteria.")
+
+        except mysql.connector.Error as e:
+            st.error(f"Error fetching detailed asteroid data: {e}")
+        except Exception as e:
+            st.error(f"An unexpected error occurred while fetching details: {e}")
 
     elif selected_sidebar_option == "Queries":
         st.subheader("Run Asteroid Queries")
