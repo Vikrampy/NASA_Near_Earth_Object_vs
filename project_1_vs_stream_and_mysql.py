@@ -697,7 +697,7 @@ else:
     st.warning("Could not establish a database connection. Please select an option from the sidebar, and ensure your MySQL server is running and credentials are correct.")
 
 st.markdown("---")
-st.caption("Developed by Vikramselvaganesh | Powered by Streamlit & MySQL")
+st.caption("Developed by Vikramselvaganesh.s | Powered by Streamlit & MySQL")
 # To run in VS Code:
 # 1. Save this code as app_vs.py (or any .py file).
 # 2. Open your terminal in VS Code (Ctrl+Shift+`).
