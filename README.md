@@ -1,5 +1,5 @@
 # NASA Near-Earth Object (NEO) Tracking &amp; Insights using Public API
-The key take away from the project"\n"
+The key take away from the project
 ●	API Integration and JSON Parsing
 ●	 Data Transformation 
 ●	Relational Database (SQL) Table Creation and Insertion
